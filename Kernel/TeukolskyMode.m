@@ -69,7 +69,7 @@ Begin["`Private`"];
 
 
 (* ::Section::Closed:: *)
-(*TeukolskyPointParticleMode*)
+(*TeukolskyPointParticleMode/点粒子模式*)
 
 
 SyntaxInformation[TeukolskyPointParticleMode] =
@@ -78,11 +78,12 @@ SyntaxInformation[TeukolskyPointParticleMode] =
 
 Options[TeukolskyPointParticleMode] = {"Domain" -> Automatic};
 
-
+(*输入slmnk以及KerrOrbit、OptionsPattern*)
 TeukolskyPointParticleMode[s_Integer, l_Integer, m_Integer, n_Integer, k_Integer, orbit_KerrGeoOrbitFunction, opts:OptionsPattern[]] /; AllTrue[orbit["Frequencies"], InexactNumberQ] :=
  Module[{source, assoc, domain, Ruser, R, S, \[Omega], \[CapitalOmega]r, \[CapitalOmega]\[Phi], \[CapitalOmega]\[Theta], Z, \[Lambda], rmin, rmax, a, p, e, x},
   {a, p, e, x} = orbit /@ {"a", "p", "e", "Inclination"};  
 
+(*仅支持Mino时、束缚测地线*)
   If[orbit["Parametrization"] =!= "Mino",
     Message[TeukolskyPointParticleMode::mino, orbit["Parametrization"]];
     Return[$Failed]];
@@ -103,14 +104,17 @@ TeukolskyPointParticleMode[s_Integer, l_Integer, m_Integer, n_Integer, k_Integer
     Return[$Failed];
     ];
 
-  (*{\[CapitalOmega]r, \[CapitalOmega]\[Theta], \[CapitalOmega]\[Phi]} = orbit["Frequencies"];*) (*This gives Mino frequencies, need BL frequencies*)
+(*默认给出Mino频率，我们需要BL频率*)
+  (*{\[CapitalOmega]r, \[CapitalOmega]\[Theta], \[CapitalOmega]\[Phi]} = orbit["Frequencies"];*) 
+  (*KerrGeoFrequencies默认给出BL频率*)
   {\[CapitalOmega]r, \[CapitalOmega]\[Theta], \[CapitalOmega]\[Phi]} = {"\!\(\*SubscriptBox[\(\[CapitalOmega]\), \(r\)]\)","\!\(\*SubscriptBox[\(\[CapitalOmega]\), \(\[Theta]\)]\)","\!\(\*SubscriptBox[\(\[CapitalOmega]\), \(\[Phi]\)]\)"}/.KerrGeoFrequencies[orbit["a"], orbit["p"], orbit["e"], orbit["Inclination"]];
   \[Omega] = m \[CapitalOmega]\[Phi] + n \[CapitalOmega]r + k \[CapitalOmega]\[Theta];
 
   source = Teukolsky`TeukolskySource`Private`TeukolskyPointParticleSource[s, orbit];
 
+
   domain = OptionValue["Domain"];
-  If[MatchQ[domain, {_?NumericQ, _?NumericQ}],
+  If[MatchQ[domain, {_?NumericQ, _?NumericQ}], (*如果 domain 是一个由两个数字构成的列表，则数值求解，否则默认执行TeukolskyRadial*)
     If[\[Omega] == 0, Message[TeukolskyPointParticleMode::sout, "Domain"]; Return[$Failed]];
     R = Ruser = TeukolskyRadial[s, l, m, a, \[Omega], Method ->
       {"NumericalIntegration", "Domain"-> {"In" -> domain, "Up" -> domain}}];
@@ -118,6 +122,7 @@ TeukolskyPointParticleMode[s_Integer, l_Integer, m_Integer, n_Integer, k_Integer
     R = Ruser = TeukolskyRadial[s, l, m, a, \[Omega]];
   ];
 
+(*如果不是圆轨道，则令rmin、rmax的区域更大一些，否则rmin=rmax=p*)
   If[e != 0,
     rmin = p/(1+e);
     rmax = p/(1-e);
@@ -131,9 +136,11 @@ TeukolskyPointParticleMode[s_Integer, l_Integer, m_Integer, n_Integer, k_Integer
     rmin = rmax = p;
   ];
   
+  (*通过齐次径向函数与源项求振幅Z*)
   S = SpinWeightedSpheroidalHarmonicS[s, l, m, a \[Omega]];
   Z = Teukolsky`ConvolveSource`Private`ConvolveSource[l, m, n, k, R, S, source];
 
+(*返回aslmnk、BL总频率、Rin本征值、轨道类型、rmax/rmin、Domain、径向函数、角向函数、振幅*)
   assoc = <| "s" -> s, 
 		     "l" -> l,
 		     "m" -> m,
@@ -161,7 +168,7 @@ TeukolskyPointParticleMode[s_Integer, l_Integer, m_Integer, n_Integer, k_Integer
 
 
 (* ::Subsection::Closed:: *)
-(*Special cases*)
+(*Special cases/特殊轨道*)
 
 
 circularOrbitQ[orbit_KerrGeoOrbitFunction] := orbit["e"] == 0 && Abs[orbit["Inclination"]] == 1;
@@ -218,7 +225,7 @@ TeukolskyMode /:
 
 
 (* ::Subsection::Closed:: *)
-(*Accessing attributes*)
+(*Accessing attributes/计算守恒流*)
 
 
 TeukolskyMode[assoc_]["EnergyFlux"] := EnergyFlux[TeukolskyMode[assoc]];
@@ -279,7 +286,7 @@ Derivative[n_][TeukolskyMode[assoc_]["ExtendedHomogeneous" -> "\[ScriptCapitalI]
 
 
 (* ::Subsection::Closed:: *)
-(*Energy Flux*)
+(*Energy Flux/能流*)
 
 
 EnergyFlux[mode_TeukolskyMode] :=
@@ -337,7 +344,7 @@ EnergyFlux[mode_TeukolskyMode] :=
 (* ::Subsection::Closed:: *)
 (*Angular Momentum Flux*)
 
-
+(*模式角动量流与能流只差m/omega*)
 AngularMomentumFlux[mode_TeukolskyMode] := If[mode["\[Omega]"]!=0,EnergyFlux[mode] mode["m"]/mode["\[Omega]"], <| "\[ScriptCapitalI]" -> 0, "\[ScriptCapitalH]" -> 0 |>];
 
 
