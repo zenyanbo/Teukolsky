@@ -27,13 +27,14 @@ Begin["`Private`"];
 
 
 (* ::Section::Closed:: *)
-(*TeukolskyPointParticleSource*)
+(*TeukolskyPointParticleSource/Teukolsky点粒子源*)
 
-
+(*s=-2 0 +2*)
 TeukolskyPointParticleSource[s:(0|-2|+2), orbit_] :=
   TeukolskySourceObject[<|"s" -> s, "SourceType" -> "PointParticle", "Orbit" -> orbit|>];
 
 
+(*s=-1 +1*)
 TeukolskyPointParticleSource[s:(-1|+1), orbit_] := Module[{assoc, a, r0, E0, \[CapitalOmega], Lz, \[CapitalSigma], c, S, B, Ar, Ati, ut, \[Rho], \[CapitalDelta], \[CapitalDelta]p, gtt, gt\[Phi]},
   a = orbit["a"];
   r0 = orbit["p"];
